@@ -1046,9 +1046,19 @@ function updateMyRow() {
   if (!currentUser) return;
   g('userRow').style.display = 'block';
   const rank = lbData.findIndex(e=>e.wallet===currentUser.wallet)+1;
+  // Sync points and referrals from live leaderboard data
+  if (rank > 0) {
+    const live = lbData[rank - 1];
+    if (live.points !== currentUser.points || live.referrals !== currentUser.referrals) {
+      currentUser = { ...currentUser, points: live.points, referrals: live.referrals };
+      saveSession(currentUser);
+    }
+  }
   g('yourRank').textContent = rank>0?'#'+rank:'#—';
   g('yourPts').textContent  = (currentUser.points||0).toLocaleString();
   g('yourRefs').textContent = currentUser.referrals||0;
+  g('profilePts').textContent = (currentUser.points||0).toLocaleString();
+  g('profileRefs').textContent = currentUser.referrals||0;
   g('profileRank').textContent = rank>0?'RANK #'+rank:'RANK #—';
   const wl  = rank>0&&rank<=20;
   const sta = g('yourStatus');
