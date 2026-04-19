@@ -357,8 +357,25 @@
 
       <div class="task-summary">
         SIGN-UP BONUS: <span style="color:var(--cyan);">+50 PTS</span><br>
-        TOTAL POSSIBLE: <span style="color:var(--cyan);">650+ PTS</span><br>
+        TOTAL POSSIBLE: <span style="color:var(--cyan);">850+ PTS</span><br>
         REFERRAL BONUS: <span style="color:var(--green);">200 PTS / INVITE</span>
+      </div>
+    </div>
+
+    <!-- CAMPAIGN POST TASK -->
+    <div style="background:var(--bg3);border:1px solid var(--border);padding:20px;flex-shrink:0;">
+      <div class="tasks-title">// Community Post · Up to +200 PTS</div>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;line-height:1.8;margin-bottom:14px;">
+        Make a post about Channel 5.0 on X. We review it manually and award points based on quality and reach. One submission per wallet.
+      </p>
+      <div id="post-submitted-msg" style="display:none;background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);padding:12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--green);letter-spacing:1px;line-height:1.7;"></div>
+      <div id="post-form">
+        <div class="input-group" style="margin-bottom:10px;">
+          <label class="input-label">Your Post URL</label>
+          <input class="cyber-input" id="campaignPostUrl" type="text" placeholder="https://x.com/you/status/...">
+          <div class="input-hint">Must be your own post. Include Channel5_0 in it.</div>
+        </div>
+        <button class="btn-connect" onclick="submitCampaignPost()" id="postSubmitBtn">SUBMIT FOR REVIEW →</button>
       </div>
     </div>
 
@@ -521,10 +538,9 @@ const ADMIN_PASSWORD = 'Arinzenwa1.';      // ← change before going live!
 const { createClient } = supabase;
 const db = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-let currentUser  = null;
-let lbData       = [];
-let adminData    = [];
-const openedTasks = new Set(); // tracks which task links were actually clicked this session
+let currentUser = null;
+let lbData      = [];
+let adminData   = [];
 
 // ── BOOT ────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -576,111 +592,67 @@ function loadSession() {
 // ── SIGNUP ──────────────────────────────────────────────────────────
 async function connectWallet() {
   const wallet  = (document.getElementById('walletInput').value || '').trim();
-  const xRaw    = (document.getElementById('usernameInput').value || '').trim().replace(/^@/, '');
-  const xUser   = xRaw.toLowerCase(); // normalize — @SerReborn and @serreborn are the same
+  const xUser   = (document.getElementById('usernameInput').value || '').trim().replace(/^@/, '');
   const invCode = (document.getElementById('inviteCodeInput').value || '').trim().toUpperCase();
 
   if (!wallet) { toast('Enter your wallet address', 'error'); return; }
-  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) { toast('Invalid wallet address', 'error'); return; }
+  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) { toast('Invalid wallet (0x + 40 hex chars)', 'error'); return; }
   if (!xUser) { toast('Enter your X username', 'error'); return; }
-  if (!/^[a-zA-Z0-9_]{1,50}$/.test(xUser)) { toast('Invalid X username — letters, numbers, underscores only', 'error'); return; }
+  if (!/^[a-zA-Z0-9_]{1,50}$/.test(xUser)) { toast('Invalid X username', 'error'); return; }
 
   const btn = document.getElementById('connectBtn');
-  btn.textContent = 'CHECKING...';
+  btn.textContent = 'JOINING...';
   btn.disabled = true;
 
   const wl = wallet.toLowerCase();
 
   if (!db) {
     // ── Local-only mode ──────────────────────────────────────────
-    const lb = getLocalLB();
-    const byWallet   = lb.find(e => e.wallet === wl);
-    const byUsername = lb.find(e => e.x_username === xUser);
-
-    if (byWallet) {
-      // returning user — wallet found
-      saveSession(byWallet); currentUser = byWallet;
-      renderProfile(byWallet);
-      toast('Welcome back, @' + byWallet.x_username + '!', 'success');
-    } else if (byUsername) {
-      // username taken by a different wallet
-      toast('That X username is already registered with a different wallet', 'error');
-      btn.textContent = 'Join Campaign →'; btn.disabled = false; return;
+    const existing = getLocalLB().find(e => e.wallet === wl);
+    if (existing) {
+      saveSession(existing);
+      currentUser = existing;
+      renderProfile(existing);
+      toast('Welcome back, @' + existing.x_username + '!', 'success');
     } else {
       const code = genCode();
       const user = { wallet: wl, x_username: xUser, referral_code: code, referred_by: invCode||null, points: 50, referrals: 0, tasks_completed: [], created_at: new Date().toISOString() };
-      let newLb = [...lb];
-      if (invCode) {
-        const refIdx = newLb.findIndex(e => e.referral_code === invCode);
-        if (refIdx === -1) { toast('Invite code not found — check and try again', 'error'); btn.textContent = 'Join Campaign →'; btn.disabled = false; return; }
-        if (newLb[refIdx].wallet === wl) { toast('You cannot use your own invite code', 'error'); btn.textContent = 'Join Campaign →'; btn.disabled = false; return; }
-        newLb[refIdx] = { ...newLb[refIdx], points: newLb[refIdx].points + 200, referrals: newLb[refIdx].referrals + 1 };
-      }
-      newLb.push(user);
-      saveLocalLB(newLb);
-      saveSession(user); currentUser = user;
+      let lb = getLocalLB();
+      if (invCode) lb = lb.map(e => e.referral_code === invCode ? { ...e, points: e.points + 200, referrals: e.referrals + 1 } : e);
+      lb.push(user);
+      saveLocalLB(lb);
+      saveSession(user);
+      currentUser = user;
       renderProfile(user);
       toast('Joined! +50 signup points 🎉', 'success');
     }
     loadLeaderboard();
-    btn.textContent = 'Join Campaign →'; btn.disabled = false;
+    btn.textContent = 'Join Campaign →';
+    btn.disabled = false;
     return;
   }
 
   // ── Supabase mode ────────────────────────────────────────────────
   try {
-    // 1. Check if wallet already registered — returning user
-    const { data: byWallet } = await db.from('entries').select('*').eq('wallet', wl).maybeSingle();
-    if (byWallet) {
-      saveSession(byWallet); currentUser = byWallet;
-      renderProfile(byWallet);
-      toast('Welcome back, @' + byWallet.x_username + '!', 'success');
+    const { data: ex } = await db.from('entries').select('*').eq('wallet', wl).maybeSingle();
+    if (ex) {
+      saveSession(ex); currentUser = ex;
+      renderProfile(ex);
+      toast('Welcome back, @' + ex.x_username + '!', 'success');
       loadLeaderboard();
       btn.textContent = 'Join Campaign →'; btn.disabled = false;
       return;
     }
-
-    // 2. Check if username already taken by a different wallet
-    const { data: byUsername } = await db.from('entries').select('wallet').eq('x_username', xUser).maybeSingle();
-    if (byUsername) {
-      toast('That X username is already registered with a different wallet', 'error');
-      btn.textContent = 'Join Campaign →'; btn.disabled = false;
-      return;
-    }
-
-    // 3. Validate referral code if provided
-    let refEntry = null;
-    if (invCode) {
-      const { data: refCheck } = await db.from('entries').select('*').eq('referral_code', invCode).maybeSingle();
-      if (!refCheck) {
-        toast('Invite code not found — check and try again', 'error');
-        btn.textContent = 'Join Campaign →'; btn.disabled = false;
-        return;
-      }
-      if (refCheck.wallet === wl) {
-        toast('You cannot use your own invite code', 'error');
-        btn.textContent = 'Join Campaign →'; btn.disabled = false;
-        return;
-      }
-      refEntry = refCheck;
-    }
-
-    // 4. All clear — insert new user
-    btn.textContent = 'JOINING...';
     const code = genCode();
     const { data, error } = await db.from('entries').insert({
       wallet: wl, x_username: xUser, referral_code: code,
       referred_by: invCode || null, points: 50, referrals: 0, tasks_completed: []
     }).select().single();
     if (error) throw error;
-
-    // 5. Award referrer — only if referral was valid
-    if (refEntry) {
-      await db.from('entries')
-        .update({ points: refEntry.points + 200, referrals: refEntry.referrals + 1 })
-        .eq('referral_code', invCode);
+    if (invCode) {
+      const { data: ref } = await db.from('entries').select('*').eq('referral_code', invCode).maybeSingle();
+      if (ref) await db.from('entries').update({ points: ref.points + 200, referrals: ref.referrals + 1 }).eq('referral_code', invCode);
     }
-
     saveSession(data); currentUser = data;
     renderProfile(data);
     toast('Welcome to Channel 5.0! +50 signup points 🎉', 'success');
@@ -697,10 +669,7 @@ function openTask(id, pts) {
   if (!currentUser) { toast('Sign up first to earn points!', 'error'); return; }
   if ((currentUser.tasks_completed||[]).includes(id)) return;
   const url = LINKS[id];
-  if (url && url !== '#') {
-    window.open(url, '_blank');
-    openedTasks.add(id); // mark that user actually visited the link
-  }
+  if (url && url !== '#') window.open(url, '_blank');
   const vr = document.getElementById('vrow-' + id);
   if (vr) vr.classList.add('open');
 }
@@ -708,10 +677,6 @@ function openTask(id, pts) {
 async function doTask(id, pts) {
   if (!currentUser) { toast('Sign up first!', 'error'); return; }
   if ((currentUser.tasks_completed||[]).includes(id)) return;
-  // Require that the user actually opened the link before claiming
-  if (LINKS[id] && LINKS[id] !== '#' && !openedTasks.has(id)) {
-    toast('Click the task link first, then claim', 'error'); return;
-  }
   const newPts   = (currentUser.points||0) + pts;
   const newTasks = [...(currentUser.tasks_completed||[]), id];
   if (db) {
@@ -736,7 +701,15 @@ async function doTask(id, pts) {
 async function verifyTask(id, pts) {
   if (!currentUser) { toast('Sign up first!', 'error'); return; }
   const inp = document.getElementById('verify-' + id);
-  if (inp && !inp.value.trim()) { toast('Paste the URL to verify', 'error'); return; }
+  const url = (inp ? inp.value.trim() : '');
+  if (!url) { toast('Paste the URL to verify', 'error'); return; }
+  const isXPost = /^https?:\/\/(x\.com|twitter\.com)\/[a-zA-Z0-9_]+\/status\/[0-9]+/.test(url);
+  if (!isXPost) { toast('Paste a real X post URL — x.com/username/status/...', 'error'); return; }
+  const urlLower = url.toLowerCase();
+  if (!urlLower.includes('/' + currentUser.x_username + '/')) {
+    toast('That URL does not match your registered X username (@' + currentUser.x_username + ')', 'error');
+    return;
+  }
   await doTask(id, pts);
 }
 
@@ -860,49 +833,183 @@ function copyInvite() {
   }).catch(()=>prompt('Copy your invite link:', text));
 }
 
+// ── CAMPAIGN POST SUBMISSION ─────────────────────────────────────────
+async function submitCampaignPost() {
+  if (!currentUser) { toast('Sign up first!', 'error'); return; }
+  const url = (g('campaignPostUrl').value || '').trim();
+  if (!url) { toast('Paste your post URL', 'error'); return; }
+  const isXPost = /^https?:\/\/(x\.com|twitter\.com)\/[a-zA-Z0-9_]+\/status\/[0-9]+/.test(url);
+  if (!isXPost) { toast('Must be a real X post URL — x.com/username/status/...', 'error'); return; }
+  if (!url.toLowerCase().includes('/' + currentUser.x_username + '/')) {
+    toast('That post URL does not match your X username (@' + currentUser.x_username + ')', 'error'); return;
+  }
+  const btn = g('postSubmitBtn');
+  btn.textContent = 'SUBMITTING...'; btn.disabled = true;
+  if (!db) {
+    g('post-form').style.display = 'none';
+    g('post-submitted-msg').style.display = 'block';
+    g('post-submitted-msg').textContent = 'Submitted! We will review and award points within 24h.';
+    toast('Post submitted for review!', 'success');
+    return;
+  }
+  try {
+    // Check if already submitted
+    const { data: existing } = await db.from('post_submissions').select('id,status,points_awarded').eq('wallet', currentUser.wallet).maybeSingle();
+    if (existing) {
+      g('post-form').style.display = 'none';
+      g('post-submitted-msg').style.display = 'block';
+      const statusMsg = existing.status === 'approved'
+        ? 'Post approved. +' + existing.points_awarded + ' pts awarded!'
+        : existing.status === 'rejected'
+        ? 'Post was not approved. Reach out on X if you think this is wrong.'
+        : 'Under review. Points awarded within 24h.';
+      g('post-submitted-msg').textContent = statusMsg;
+      btn.textContent = 'SUBMIT FOR REVIEW →'; btn.disabled = false;
+      return;
+    }
+    const { error } = await db.from('post_submissions').insert({
+      wallet: currentUser.wallet, x_username: currentUser.x_username,
+      post_url: url, status: 'pending', points_awarded: 0
+    });
+    if (error) throw error;
+    g('post-form').style.display = 'none';
+    g('post-submitted-msg').style.display = 'block';
+    g('post-submitted-msg').textContent = 'Submitted! We will review and award points within 24h.';
+    toast('Post submitted for review!', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+  btn.textContent = 'SUBMIT FOR REVIEW →'; btn.disabled = false;
+}
+
 // ── ADMIN ────────────────────────────────────────────────────────────
 async function loadAdminData() {
   const el = g('adminContent');
-  if (!db) { adminData=getLocalLB(); renderAdminTable(adminData); return; }
+  if (!db) { adminData=getLocalLB(); renderAdminTable(adminData, []); return; }
   try {
-    const { data, error } = await db.from('entries').select('*').order('points',{ascending:false});
-    if (error) throw error;
-    adminData = data||[];
-    renderAdminTable(adminData);
+    const [signupsRes, postsRes] = await Promise.all([
+      db.from('signups').select('*').order('points',{ascending:false}),
+      db.from('post_submissions').select('*').order('submitted_at',{ascending:false})
+    ]);
+    if (signupsRes.error) throw signupsRes.error;
+    adminData = signupsRes.data || [];
+    renderAdminTable(adminData, postsRes.data || []);
   } catch(e) { el.innerHTML='<div style="color:var(--red);font-family:Share Tech Mono,monospace;">Error: '+esc(e.message)+'</div>'; }
 }
 
-function renderAdminTable(data) {
+async function adjustPoints(wallet, amount) {
+  const entry = adminData.find(e => e.wallet === wallet);
+  if (!entry) return;
+  const newPts = Math.max(0, entry.points + amount);
+  if (!confirm((amount > 0 ? 'Add ' : 'Remove ') + Math.abs(amount) + ' pts to @' + entry.x_username + '? New total: ' + newPts)) return;
+  try {
+    const { error } = await db.from('signups').update({ points: newPts }).eq('wallet', wallet);
+    if (error) throw error;
+    toast('Points updated for @' + entry.x_username, 'success');
+    loadAdminData();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function removeUser(wallet) {
+  const entry = adminData.find(e => e.wallet === wallet);
+  if (!entry) return;
+  if (!confirm('REMOVE @' + entry.x_username + ' from the leaderboard? This cannot be undone.')) return;
+  try {
+    await db.from('signups').delete().eq('wallet', wallet);
+    await db.from('post_submissions').delete().eq('wallet', wallet);
+    toast('@' + entry.x_username + ' removed', 'success');
+    loadAdminData();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+async function reviewPost(id, wallet, x_username, action, ptsInput) {
+  const pts = parseInt(ptsInput) || 0;
+  if (action === 'approve' && (pts < 1 || pts > 200)) { toast('Enter points between 1 and 200', 'error'); return; }
+  if (!confirm(action === 'approve' ? 'Approve post and award +' + pts + ' pts to @' + x_username + '?' : 'Reject this post from @' + x_username + '?')) return;
+  try {
+    await db.from('post_submissions').update({ status: action === 'approve' ? 'approved' : 'rejected', points_awarded: action === 'approve' ? pts : 0, reviewed_at: new Date().toISOString() }).eq('id', id);
+    if (action === 'approve') {
+      const entry = adminData.find(e => e.wallet === wallet);
+      const curPts = entry ? entry.points : 0;
+      await db.from('signups').update({ points: curPts + pts }).eq('wallet', wallet);
+    }
+    toast(action === 'approve' ? 'Approved — +' + pts + ' pts awarded to @' + x_username : 'Rejected', 'success');
+    loadAdminData();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function renderAdminTable(data, posts) {
   const total   = data.reduce((s,e)=>s+e.points,0);
   const active  = data.filter(e=>e.referrals>0).length;
+  const pending = posts.filter(p=>p.status==='pending').length;
   const th      = 'padding:10px 12px;font-family:Share Tech Mono,monospace;font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;font-weight:normal;text-align:left;';
-  const rows    = data.map((e,i)=>`
+  const td      = 'padding:10px 12px;';
+
+  const rows = data.map((e,i)=>`
     <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-      <td style="padding:10px 12px;font-family:Share Tech Mono,monospace;font-size:12px;color:var(--dim);">${i+1}</td>
-      <td style="padding:10px 12px;font-family:Share Tech Mono,monospace;font-size:12px;word-break:break-all;">${esc(e.wallet)}</td>
-      <td style="padding:10px 12px;font-family:Orbitron,monospace;font-size:12px;color:#fff;">@${esc(e.x_username)}</td>
-      <td style="padding:10px 12px;font-family:Orbitron,monospace;font-size:14px;font-weight:900;color:var(--cyan);">${e.points}</td>
-      <td style="padding:10px 12px;font-family:Share Tech Mono,monospace;font-size:12px;color:var(--green);">${e.referrals}</td>
-      <td style="padding:10px 12px;font-family:Share Tech Mono,monospace;font-size:11px;color:var(--dim);">${esc(e.referral_code)}</td>
-      <td style="padding:10px 12px;font-family:Share Tech Mono,monospace;font-size:11px;color:var(--dim);">${e.referred_by||'—'}</td>
-      <td style="padding:10px 12px;font-family:Share Tech Mono,monospace;font-size:11px;color:var(--dim);">${new Date(e.created_at).toLocaleDateString()}</td>
+      <td style="${td}font-family:Share Tech Mono,monospace;font-size:12px;color:var(--dim);">${i+1}</td>
+      <td style="${td}font-family:Share Tech Mono,monospace;font-size:11px;word-break:break-all;">${esc(e.wallet)}</td>
+      <td style="${td}font-family:Orbitron,monospace;font-size:12px;color:#fff;">@${esc(e.x_username)}</td>
+      <td style="${td}font-family:Orbitron,monospace;font-size:14px;font-weight:900;color:var(--cyan);">${e.points}</td>
+      <td style="${td}font-family:Share Tech Mono,monospace;font-size:12px;color:var(--green);">${e.referrals}</td>
+      <td style="${td}font-family:Share Tech Mono,monospace;font-size:11px;color:var(--dim);">${new Date(e.created_at).toLocaleDateString()}</td>
+      <td style="${td}">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="adjustPoints('${esc(e.wallet)}', 50)"  style="font-family:Share Tech Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--green);background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.3);padding:4px 10px;cursor:pointer;">+50</button>
+          <button onclick="adjustPoints('${esc(e.wallet)}', 100)" style="font-family:Share Tech Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--green);background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.3);padding:4px 10px;cursor:pointer;">+100</button>
+          <button onclick="adjustPoints('${esc(e.wallet)}', -50)" style="font-family:Share Tech Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--red);background:rgba(255,45,85,0.08);border:1px solid rgba(255,45,85,0.3);padding:4px 10px;cursor:pointer;">-50</button>
+          <button onclick="adjustPoints('${esc(e.wallet)}', -100)"style="font-family:Share Tech Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--red);background:rgba(255,45,85,0.08);border:1px solid rgba(255,45,85,0.3);padding:4px 10px;cursor:pointer;">-100</button>
+          <button onclick="removeUser('${esc(e.wallet)}')"        style="font-family:Share Tech Mono,monospace;font-size:10px;letter-spacing:1px;color:var(--red);background:rgba(255,45,85,0.08);border:1px solid rgba(255,45,85,0.3);padding:4px 10px;cursor:pointer;">REMOVE</button>
+        </div>
+      </td>
     </tr>`).join('');
+
+  const postRows = posts.length ? posts.map(p=>`
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+      <td style="${td}font-family:Orbitron,monospace;font-size:12px;color:#fff;">@${esc(p.x_username)}</td>
+      <td style="${td}font-family:Share Tech Mono,monospace;font-size:11px;"><a href="${esc(p.post_url)}" target="_blank" style="color:var(--cyan);word-break:break-all;">${esc(p.post_url)}</a></td>
+      <td style="${td}font-family:Share Tech Mono,monospace;font-size:11px;color:${p.status==='approved'?'var(--green)':p.status==='rejected'?'var(--red)':'var(--gold)'};">${p.status.toUpperCase()}</td>
+      <td style="${td}font-family:Orbitron,monospace;font-size:13px;font-weight:900;color:var(--cyan);">${p.points_awarded||'—'}</td>
+      <td style="${td}font-family:Share Tech Mono,monospace;font-size:11px;color:var(--dim);">${new Date(p.submitted_at).toLocaleDateString()}</td>
+      <td style="${td}">
+        ${p.status==='pending' ? `
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input id="pts-${p.id}" type="number" min="1" max="200" placeholder="pts" style="width:64px;background:rgba(0,245,255,0.04);border:1px solid var(--border);color:var(--text);font-family:Share Tech Mono,monospace;font-size:11px;padding:4px 8px;outline:none;">
+          <button onclick="reviewPost('${p.id}','${esc(p.wallet)}','${esc(p.x_username)}','approve',g('pts-${p.id}').value)" style="font-family:Share Tech Mono,monospace;font-size:10px;color:var(--green);background:rgba(0,255,136,0.08);border:1px solid rgba(0,255,136,0.3);padding:4px 10px;cursor:pointer;">APPROVE</button>
+          <button onclick="reviewPost('${p.id}','${esc(p.wallet)}','${esc(p.x_username)}','reject',0)"                       style="font-family:Share Tech Mono,monospace;font-size:10px;color:var(--red);background:rgba(255,45,85,0.08);border:1px solid rgba(255,45,85,0.3);padding:4px 10px;cursor:pointer;">REJECT</button>
+        </div>` : '—'}
+      </td>
+    </tr>`).join('') : `<tr><td colspan="6" style="padding:20px;font-family:Share Tech Mono,monospace;font-size:12px;color:var(--dim);text-align:center;">No submissions yet</td></tr>`;
 
   g('adminContent').innerHTML = `
     <div style="display:flex;gap:40px;flex-wrap:wrap;margin-bottom:28px;align-items:flex-end;">
       <div><div class="admin-stat-big">${data.length}</div><div class="admin-stat-label">TOTAL SIGNUPS</div></div>
       <div><div class="admin-stat-big">${total.toLocaleString()}</div><div class="admin-stat-label">TOTAL POINTS ISSUED</div></div>
       <div><div class="admin-stat-big">${active}</div><div class="admin-stat-label">ACTIVE REFERRERS</div></div>
+      <div><div class="admin-stat-big" style="color:${pending>0?'var(--gold)':'var(--cyan)'};">${pending}</div><div class="admin-stat-label">POSTS PENDING REVIEW</div></div>
       <button class="btn-export" onclick="exportCSV()" style="margin-left:auto;">EXPORT CSV</button>
+    </div>
+
+    <div style="font-family:Orbitron,monospace;font-size:13px;font-weight:700;color:#fff;letter-spacing:2px;margin-bottom:12px;">LEADERBOARD</div>
+    <div style="overflow-x:auto;border:1px solid var(--border);margin-bottom:32px;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border);">
+          <th style="${th}">#</th><th style="${th}">WALLET</th><th style="${th}">X USERNAME</th>
+          <th style="${th}">POINTS</th><th style="${th}">REFS</th><th style="${th}">JOINED</th>
+          <th style="${th}">ADJUST POINTS</th>
+        </tr></thead>
+        <tbody style="background:var(--bg3);">${rows}</tbody>
+      </table>
+    </div>
+
+    <div style="font-family:Orbitron,monospace;font-size:13px;font-weight:700;color:#fff;letter-spacing:2px;margin-bottom:12px;">
+      COMMUNITY POST SUBMISSIONS ${pending>0?'<span style="font-family:Share Tech Mono,monospace;font-size:11px;color:var(--gold);margin-left:12px;">'+pending+' PENDING</span>':''}
     </div>
     <div style="overflow-x:auto;border:1px solid var(--border);">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead><tr style="background:var(--bg2);border-bottom:2px solid var(--border);">
-          <th style="${th}">#</th><th style="${th}">WALLET</th><th style="${th}">X USERNAME</th>
-          <th style="${th}">POINTS</th><th style="${th}">REFS</th><th style="${th}">REF CODE</th>
-          <th style="${th}">REFERRED BY</th><th style="${th}">JOINED</th>
+          <th style="${th}">USERNAME</th><th style="${th}">POST URL</th><th style="${th}">STATUS</th>
+          <th style="${th}">PTS AWARDED</th><th style="${th}">SUBMITTED</th><th style="${th}">ACTION</th>
         </tr></thead>
-        <tbody style="background:var(--bg3);">${rows}</tbody>
+        <tbody style="background:var(--bg3);">${postRows}</tbody>
       </table>
     </div>`;
 }
