@@ -842,10 +842,18 @@ async function doTask(id, pts) {
   const newTasks = [...(currentUser.tasks_completed||[]), id];
   if (db) {
     try {
-      const { data, error } = await db.from('entries').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet).select().single();
-      if (error) throw error;
-      currentUser = data;
-    } catch(e) { toast('Save error, try again', 'error'); return; }
+      // Update first — no chained select (avoids PGRST116 RLS row-not-returned error)
+      const { error: updErr } = await db.from('entries').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet);
+      if (updErr) throw updErr;
+      // Fetch the updated row separately
+      const { data: fresh, error: selErr } = await db.from('entries').select('*').eq('wallet', currentUser.wallet).single();
+      if (selErr) throw selErr;
+      currentUser = fresh;
+    } catch(e) {
+      console.error('[doTask] Supabase error:', e);
+      toast('Save error: ' + (e.message || e.code || JSON.stringify(e)), 'error');
+      return;
+    }
   } else {
     currentUser.points = newPts; currentUser.tasks_completed = newTasks;
     let lb = getLocalLB().map(e => e.wallet === currentUser.wallet ? { ...currentUser } : e);
