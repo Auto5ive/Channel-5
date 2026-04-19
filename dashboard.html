@@ -1155,6 +1155,13 @@ async function adjustPoints(wallet, amount) {
     const { error } = await db.from('signups').update({ points: newPts }).eq('wallet', wallet);
     if (error) throw error;
     toast('Points updated for @' + entry.x_username, 'success');
+    // If this wallet is the logged-in user, update their profile panel too
+    if (currentUser && currentUser.wallet === wallet) {
+      currentUser = { ...currentUser, points: newPts };
+      saveSession(currentUser);
+      g('profilePts').textContent = newPts.toLocaleString();
+      updateMyRow();
+    }
     loadAdminData();
   } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
