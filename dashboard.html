@@ -331,7 +331,7 @@
     </div>
 
     <!-- TASKS STEPPER -->
-    <div>
+    <div id="tasks-stepper">
       <div class="tasks-title">// Complete Tasks · Earn Points</div>
 
       <div class="task-step-header">
@@ -437,10 +437,40 @@
         <button class="task-nav-btn" id="taskNextBtn" onclick="taskNav(1)">NEXT →</button>
       </div>
 
-      <div class="task-summary">
-        SIGN-UP BONUS: <span style="color:var(--cyan);">+50 PTS</span><br>
-        TASKS TOTAL: <span style="color:var(--cyan);">+350 PTS</span><br>
-        REFERRAL BONUS: <span style="color:var(--green);">+200 PTS / INVITE</span>
+    </div>
+
+    <!-- REFER FRIENDS PANEL — shown when all tasks done -->
+    <div id="refer-friends-panel" style="display:none;background:var(--bg3);border:1px solid var(--border);padding:20px;flex-shrink:0;">
+      <div class="tasks-title">// All Tasks Complete 🎉</div>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;line-height:1.8;margin-bottom:16px;">
+        You are done. Now refer friends. Every person who joins with your link = +200 pts. No limit.
+      </p>
+      <div style="background:rgba(0,245,255,0.04);border:1px solid var(--border);padding:14px;margin-bottom:14px;">
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--cyan);margin-bottom:8px;">YOUR INVITE LINK</div>
+        <div id="refLinkVal2" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text);word-break:break-all;margin-bottom:12px;">—</div>
+        <button class="tpage-btn" onclick="copyReferPanelLink()">COPY LINK</button>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:2px;">
+        REFERRALS: <span id="refCountPanel" style="color:var(--green);font-weight:900;">0</span>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        BONUS PTS: <span id="refBonusPanel" style="color:var(--cyan);font-weight:900;">0</span>
+      </div>
+    </div>
+
+    <!-- CAMPAIGN POST -->
+    <div style="background:var(--bg3);border:1px solid var(--border);padding:20px;flex-shrink:0;">
+      <div class="tasks-title">// Community Post · Up to +200 PTS</div>
+      <p style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;line-height:1.8;margin-bottom:14px;">
+        Post about Channel 5.0 on X. Paste the link below. We review and award points based on quality. One post every 24 hours.
+      </p>
+      <div id="post-submitted-msg" style="display:none;background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);padding:12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--green);letter-spacing:1px;line-height:1.7;margin-bottom:10px;"></div>
+      <div id="post-form">
+        <div class="input-group" style="margin-bottom:10px;">
+          <label class="input-label">Your Post URL</label>
+          <input class="cyber-input" id="campaignPostUrl" type="text" placeholder="https://x.com/you/status/...">
+          <div class="input-hint">Must be your own post mentioning Channel5_0</div>
+        </div>
+        <button class="btn-connect" onclick="submitCampaignPost()" id="postSubmitBtn" style="width:100%;font-size:12px;padding:12px;">SUBMIT FOR REVIEW →</button>
       </div>
     </div>
 
@@ -766,14 +796,30 @@ function refreshRefTask() {
     const base = window.location.origin + window.location.pathname;
     const url  = base + '?ref=' + currentUser.referral_code;
     document.getElementById('refLinkVal').textContent = url;
-    box.style.display   = 'block';
-    noLnk.style.display = 'none';
-    cnt.textContent     = currentUser.referrals || 0;
+    if (box)   box.style.display   = 'block';
+    if (noLnk) noLnk.style.display = 'none';
+    if (cnt)   cnt.textContent     = currentUser.referrals || 0;
+    // Also populate the always-visible refer friends panel
+    const lv2 = g('refLinkVal2');
+    const rcp = g('refCountPanel');
+    const rbp = g('refBonusPanel');
+    if (lv2) lv2.textContent = url;
+    if (rcp) rcp.textContent = currentUser.referrals || 0;
+    if (rbp) rbp.textContent = ((currentUser.referrals || 0) * 200).toLocaleString();
   } else {
-    box.style.display   = 'none';
-    noLnk.style.display = 'block';
-    cnt.textContent     = '0';
+    if (box)   box.style.display   = 'none';
+    if (noLnk) noLnk.style.display = 'block';
+    if (cnt)   cnt.textContent     = '0';
   }
+}
+
+function copyReferPanelLink() {
+  if (!currentUser) return;
+  const base = window.location.origin + window.location.pathname;
+  const url  = base + '?ref=' + currentUser.referral_code;
+  navigator.clipboard.writeText(url)
+    .then(() => toast('Invite link copied!', 'success'))
+    .catch(() => prompt('Copy your link:', url));
 }
 
 function openFollowTask() {
@@ -970,11 +1016,17 @@ function renderProfile(user) {
   g('screen-profile').classList.add('active');
   updateMyRow();
   updateQuotePreview();
-  // If all non-referral tasks done, go straight to invite page
+  // If all tasks done — hide stepper, show refer friends permanently
   const done = user.tasks_completed || [];
   const allTasksDone = ['follow','likert','repost','comment'].every(t => done.includes(t));
-  if (allTasksDone) {
-    goToTask(TOTAL_TASKS - 1);
+  const stepper = g('tasks-stepper');
+  const refPanel = g('refer-friends-panel');
+  if (allTasksDone && stepper && refPanel) {
+    stepper.style.display = 'none';
+    refPanel.style.display = 'block';
+  } else if (stepper) {
+    stepper.style.display = 'block';
+    if (refPanel) refPanel.style.display = 'none';
   }
   refreshRefTask();
 }
