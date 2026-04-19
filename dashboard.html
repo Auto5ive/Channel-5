@@ -617,7 +617,7 @@ async function connectWallet() {
 
   // ── Supabase mode ────────────────────────────────────────────────
   try {
-    const { data: ex } = await db.from('entries').select('*').eq('wallet', wl).maybeSingle();
+    const { data: ex } = await db.from('signups').select('*').eq('wallet', wl).maybeSingle();
     if (ex) {
       saveSession(ex); currentUser = ex;
       renderProfile(ex);
@@ -627,14 +627,14 @@ async function connectWallet() {
       return;
     }
     const code = genCode();
-    const { data, error } = await db.from('entries').insert({
+    const { data, error } = await db.from('signups').insert({
       wallet: wl, x_username: xUser, referral_code: code,
       referred_by: invCode || null, points: 50, referrals: 0, tasks_completed: []
     }).select().single();
     if (error) throw error;
     if (invCode) {
-      const { data: ref } = await db.from('entries').select('*').eq('referral_code', invCode).maybeSingle();
-      if (ref) await db.from('entries').update({ points: ref.points + 200, referrals: ref.referrals + 1 }).eq('referral_code', invCode);
+      const { data: ref } = await db.from('signups').select('*').eq('referral_code', invCode).maybeSingle();
+      if (ref) await db.from('signups').update({ points: ref.points + 200, referrals: ref.referrals + 1 }).eq('referral_code', invCode);
     }
     saveSession(data); currentUser = data;
     renderProfile(data);
@@ -664,7 +664,7 @@ async function doTask(id, pts) {
   const newTasks = [...(currentUser.tasks_completed||[]), id];
   if (db) {
     try {
-      const { data, error } = await db.from('entries').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet).select().single();
+      const { data, error } = await db.from('signups').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet).select().single();
       if (error) throw error;
       currentUser = data;
     } catch(e) { toast('Save error, try again', 'error'); return; }
@@ -702,7 +702,7 @@ async function loadLeaderboard() {
     render(lbData); return;
   }
   try {
-    const { data, error } = await db.from('entries').select('wallet,x_username,points,referrals').order('points',{ascending:false}).limit(100);
+    const { data, error } = await db.from('signups').select('wallet,x_username,points,referrals').order('points',{ascending:false}).limit(100);
     if (error) throw error;
     lbData = data || [];
     render(lbData);
@@ -813,7 +813,7 @@ async function loadAdminData() {
   const el = g('adminContent');
   if (!db) { adminData=getLocalLB(); renderAdminTable(adminData); return; }
   try {
-    const { data, error } = await db.from('entries').select('*').order('points',{ascending:false});
+    const { data, error } = await db.from('signups').select('*').order('points',{ascending:false});
     if (error) throw error;
     adminData = data||[];
     renderAdminTable(adminData);
