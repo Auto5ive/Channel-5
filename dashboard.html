@@ -521,9 +521,10 @@ const ADMIN_PASSWORD = 'Arinzenwa1.';      // ← change before going live!
 const { createClient } = supabase;
 const db = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-let currentUser = null;
-let lbData      = [];
-let adminData   = [];
+let currentUser  = null;
+let lbData       = [];
+let adminData    = [];
+const openedTasks = new Set(); // tracks which task links were actually clicked this session
 
 // ── BOOT ────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -575,67 +576,111 @@ function loadSession() {
 // ── SIGNUP ──────────────────────────────────────────────────────────
 async function connectWallet() {
   const wallet  = (document.getElementById('walletInput').value || '').trim();
-  const xUser   = (document.getElementById('usernameInput').value || '').trim().replace(/^@/, '');
+  const xRaw    = (document.getElementById('usernameInput').value || '').trim().replace(/^@/, '');
+  const xUser   = xRaw.toLowerCase(); // normalize — @SerReborn and @serreborn are the same
   const invCode = (document.getElementById('inviteCodeInput').value || '').trim().toUpperCase();
 
   if (!wallet) { toast('Enter your wallet address', 'error'); return; }
-  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) { toast('Invalid wallet (0x + 40 hex chars)', 'error'); return; }
+  if (!/^0x[a-fA-F0-9]{40}$/.test(wallet)) { toast('Invalid wallet address', 'error'); return; }
   if (!xUser) { toast('Enter your X username', 'error'); return; }
-  if (!/^[a-zA-Z0-9_]{1,50}$/.test(xUser)) { toast('Invalid X username', 'error'); return; }
+  if (!/^[a-zA-Z0-9_]{1,50}$/.test(xUser)) { toast('Invalid X username — letters, numbers, underscores only', 'error'); return; }
 
   const btn = document.getElementById('connectBtn');
-  btn.textContent = 'JOINING...';
+  btn.textContent = 'CHECKING...';
   btn.disabled = true;
 
   const wl = wallet.toLowerCase();
 
   if (!db) {
     // ── Local-only mode ──────────────────────────────────────────
-    const existing = getLocalLB().find(e => e.wallet === wl);
-    if (existing) {
-      saveSession(existing);
-      currentUser = existing;
-      renderProfile(existing);
-      toast('Welcome back, @' + existing.x_username + '!', 'success');
+    const lb = getLocalLB();
+    const byWallet   = lb.find(e => e.wallet === wl);
+    const byUsername = lb.find(e => e.x_username === xUser);
+
+    if (byWallet) {
+      // returning user — wallet found
+      saveSession(byWallet); currentUser = byWallet;
+      renderProfile(byWallet);
+      toast('Welcome back, @' + byWallet.x_username + '!', 'success');
+    } else if (byUsername) {
+      // username taken by a different wallet
+      toast('That X username is already registered with a different wallet', 'error');
+      btn.textContent = 'Join Campaign →'; btn.disabled = false; return;
     } else {
       const code = genCode();
       const user = { wallet: wl, x_username: xUser, referral_code: code, referred_by: invCode||null, points: 50, referrals: 0, tasks_completed: [], created_at: new Date().toISOString() };
-      let lb = getLocalLB();
-      if (invCode) lb = lb.map(e => e.referral_code === invCode ? { ...e, points: e.points + 200, referrals: e.referrals + 1 } : e);
-      lb.push(user);
-      saveLocalLB(lb);
-      saveSession(user);
-      currentUser = user;
+      let newLb = [...lb];
+      if (invCode) {
+        const refIdx = newLb.findIndex(e => e.referral_code === invCode);
+        if (refIdx === -1) { toast('Invite code not found — check and try again', 'error'); btn.textContent = 'Join Campaign →'; btn.disabled = false; return; }
+        if (newLb[refIdx].wallet === wl) { toast('You cannot use your own invite code', 'error'); btn.textContent = 'Join Campaign →'; btn.disabled = false; return; }
+        newLb[refIdx] = { ...newLb[refIdx], points: newLb[refIdx].points + 200, referrals: newLb[refIdx].referrals + 1 };
+      }
+      newLb.push(user);
+      saveLocalLB(newLb);
+      saveSession(user); currentUser = user;
       renderProfile(user);
       toast('Joined! +50 signup points 🎉', 'success');
     }
     loadLeaderboard();
-    btn.textContent = 'Join Campaign →';
-    btn.disabled = false;
+    btn.textContent = 'Join Campaign →'; btn.disabled = false;
     return;
   }
 
   // ── Supabase mode ────────────────────────────────────────────────
   try {
-    const { data: ex } = await db.from('signups').select('*').eq('wallet', wl).maybeSingle();
-    if (ex) {
-      saveSession(ex); currentUser = ex;
-      renderProfile(ex);
-      toast('Welcome back, @' + ex.x_username + '!', 'success');
+    // 1. Check if wallet already registered — returning user
+    const { data: byWallet } = await db.from('entries').select('*').eq('wallet', wl).maybeSingle();
+    if (byWallet) {
+      saveSession(byWallet); currentUser = byWallet;
+      renderProfile(byWallet);
+      toast('Welcome back, @' + byWallet.x_username + '!', 'success');
       loadLeaderboard();
       btn.textContent = 'Join Campaign →'; btn.disabled = false;
       return;
     }
+
+    // 2. Check if username already taken by a different wallet
+    const { data: byUsername } = await db.from('entries').select('wallet').eq('x_username', xUser).maybeSingle();
+    if (byUsername) {
+      toast('That X username is already registered with a different wallet', 'error');
+      btn.textContent = 'Join Campaign →'; btn.disabled = false;
+      return;
+    }
+
+    // 3. Validate referral code if provided
+    let refEntry = null;
+    if (invCode) {
+      const { data: refCheck } = await db.from('entries').select('*').eq('referral_code', invCode).maybeSingle();
+      if (!refCheck) {
+        toast('Invite code not found — check and try again', 'error');
+        btn.textContent = 'Join Campaign →'; btn.disabled = false;
+        return;
+      }
+      if (refCheck.wallet === wl) {
+        toast('You cannot use your own invite code', 'error');
+        btn.textContent = 'Join Campaign →'; btn.disabled = false;
+        return;
+      }
+      refEntry = refCheck;
+    }
+
+    // 4. All clear — insert new user
+    btn.textContent = 'JOINING...';
     const code = genCode();
-    const { data, error } = await db.from('signups').insert({
+    const { data, error } = await db.from('entries').insert({
       wallet: wl, x_username: xUser, referral_code: code,
       referred_by: invCode || null, points: 50, referrals: 0, tasks_completed: []
     }).select().single();
     if (error) throw error;
-    if (invCode) {
-      const { data: ref } = await db.from('signups').select('*').eq('referral_code', invCode).maybeSingle();
-      if (ref) await db.from('signups').update({ points: ref.points + 200, referrals: ref.referrals + 1 }).eq('referral_code', invCode);
+
+    // 5. Award referrer — only if referral was valid
+    if (refEntry) {
+      await db.from('entries')
+        .update({ points: refEntry.points + 200, referrals: refEntry.referrals + 1 })
+        .eq('referral_code', invCode);
     }
+
     saveSession(data); currentUser = data;
     renderProfile(data);
     toast('Welcome to Channel 5.0! +50 signup points 🎉', 'success');
@@ -652,7 +697,10 @@ function openTask(id, pts) {
   if (!currentUser) { toast('Sign up first to earn points!', 'error'); return; }
   if ((currentUser.tasks_completed||[]).includes(id)) return;
   const url = LINKS[id];
-  if (url && url !== '#') window.open(url, '_blank');
+  if (url && url !== '#') {
+    window.open(url, '_blank');
+    openedTasks.add(id); // mark that user actually visited the link
+  }
   const vr = document.getElementById('vrow-' + id);
   if (vr) vr.classList.add('open');
 }
@@ -660,11 +708,15 @@ function openTask(id, pts) {
 async function doTask(id, pts) {
   if (!currentUser) { toast('Sign up first!', 'error'); return; }
   if ((currentUser.tasks_completed||[]).includes(id)) return;
+  // Require that the user actually opened the link before claiming
+  if (LINKS[id] && LINKS[id] !== '#' && !openedTasks.has(id)) {
+    toast('Click the task link first, then claim', 'error'); return;
+  }
   const newPts   = (currentUser.points||0) + pts;
   const newTasks = [...(currentUser.tasks_completed||[]), id];
   if (db) {
     try {
-      const { data, error } = await db.from('signups').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet).select().single();
+      const { data, error } = await db.from('entries').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet).select().single();
       if (error) throw error;
       currentUser = data;
     } catch(e) { toast('Save error, try again', 'error'); return; }
@@ -702,7 +754,7 @@ async function loadLeaderboard() {
     render(lbData); return;
   }
   try {
-    const { data, error } = await db.from('signups').select('wallet,x_username,points,referrals').order('points',{ascending:false}).limit(100);
+    const { data, error } = await db.from('entries').select('wallet,x_username,points,referrals').order('points',{ascending:false}).limit(100);
     if (error) throw error;
     lbData = data || [];
     render(lbData);
@@ -813,7 +865,7 @@ async function loadAdminData() {
   const el = g('adminContent');
   if (!db) { adminData=getLocalLB(); renderAdminTable(adminData); return; }
   try {
-    const { data, error } = await db.from('signups').select('*').order('points',{ascending:false});
+    const { data, error } = await db.from('entries').select('*').order('points',{ascending:false});
     if (error) throw error;
     adminData = data||[];
     renderAdminTable(adminData);
