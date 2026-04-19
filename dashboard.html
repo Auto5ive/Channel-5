@@ -741,15 +741,28 @@ async function connectWallet() {
       btn.textContent = 'Join Campaign →'; btn.disabled = false;
       return;
     }
+    // Validate invite code before inserting
+    let refEntry = null;
+    if (invCode) {
+      const { data: refCheck } = await db.from('signups').select('*').eq('referral_code', invCode).maybeSingle();
+      if (!refCheck) {
+        toast('Invite code not found — check and try again', 'error');
+        btn.textContent = 'Join Campaign →'; btn.disabled = false; return;
+      }
+      if (refCheck.wallet === wl) {
+        toast('You cannot use your own invite code', 'error');
+        btn.textContent = 'Join Campaign →'; btn.disabled = false; return;
+      }
+      refEntry = refCheck;
+    }
     const code = genCode();
     const { data, error } = await db.from('signups').insert({
       wallet: wl, x_username: xUser, referral_code: code,
       referred_by: invCode || null, points: 50, referrals: 0, tasks_completed: []
     }).select().maybeSingle();
     if (error) throw error;
-    if (invCode) {
-      const { data: ref } = await db.from('signups').select('*').eq('referral_code', invCode).maybeSingle();
-      if (ref) await db.from('signups').update({ points: ref.points + 200, referrals: ref.referrals + 1 }).eq('referral_code', invCode);
+    if (refEntry) {
+      await db.from('signups').update({ points: refEntry.points + 200, referrals: refEntry.referrals + 1 }).eq('referral_code', invCode);
     }
     saveSession(data); currentUser = data;
     renderProfile(data);
@@ -891,10 +904,8 @@ async function doTask(id, pts) {
       // Update first — no chained select (avoids PGRST116 RLS row-not-returned error)
       const { error: updErr } = await db.from('signups').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet);
       if (updErr) throw updErr;
-      // Fetch the updated row separately
-      const { data: fresh, error: selErr } = await db.from('signups').select('*').eq('wallet', currentUser.wallet).maybeSingle();
-      if (selErr) throw selErr;
-      currentUser = fresh;
+      // Update locally — no re-fetch needed, avoids PGRST116 error
+      currentUser = { ...currentUser, points: newPts, tasks_completed: newTasks };
     } catch(e) {
       console.error('[doTask] Supabase error:', e);
       toast('Save error: ' + (e.message || e.code || JSON.stringify(e)), 'error');
@@ -1080,7 +1091,7 @@ async function submitCampaignPost() {
   if (!url) { toast('Paste your post URL', 'error'); return; }
   const isXPost = /^https?:\/\/(x\.com|twitter\.com)\/[a-zA-Z0-9_]+\/status\/[0-9]+/.test(url);
   if (!isXPost) { toast('Must be a real X post URL — x.com/username/status/...', 'error'); return; }
-  if (!url.toLowerCase().includes('/' + currentUser.x_username + '/')) {
+  if (!url.toLowerCase().includes('/' + currentUser.x_username.toLowerCase() + '/')) {
     toast('That post URL does not match your X username (@' + currentUser.x_username + ')', 'error'); return;
   }
   const btn = g('postSubmitBtn');
