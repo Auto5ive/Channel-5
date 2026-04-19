@@ -702,7 +702,7 @@ async function connectWallet() {
 
   // ── Supabase mode ────────────────────────────────────────────────
   try {
-    const { data: ex } = await db.from('entries').select('*').eq('wallet', wl).maybeSingle();
+    const { data: ex } = await db.from('signups').select('*').eq('wallet', wl).maybeSingle();
     if (ex) {
       saveSession(ex); currentUser = ex;
       renderProfile(ex);
@@ -712,14 +712,14 @@ async function connectWallet() {
       return;
     }
     const code = genCode();
-    const { data, error } = await db.from('entries').insert({
+    const { data, error } = await db.from('signups').insert({
       wallet: wl, x_username: xUser, referral_code: code,
       referred_by: invCode || null, points: 50, referrals: 0, tasks_completed: []
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
     if (invCode) {
-      const { data: ref } = await db.from('entries').select('*').eq('referral_code', invCode).maybeSingle();
-      if (ref) await db.from('entries').update({ points: ref.points + 200, referrals: ref.referrals + 1 }).eq('referral_code', invCode);
+      const { data: ref } = await db.from('signups').select('*').eq('referral_code', invCode).maybeSingle();
+      if (ref) await db.from('signups').update({ points: ref.points + 200, referrals: ref.referrals + 1 }).eq('referral_code', invCode);
     }
     saveSession(data); currentUser = data;
     renderProfile(data);
@@ -843,10 +843,10 @@ async function doTask(id, pts) {
   if (db) {
     try {
       // Update first — no chained select (avoids PGRST116 RLS row-not-returned error)
-      const { error: updErr } = await db.from('entries').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet);
+      const { error: updErr } = await db.from('signups').update({ points: newPts, tasks_completed: newTasks }).eq('wallet', currentUser.wallet);
       if (updErr) throw updErr;
       // Fetch the updated row separately
-      const { data: fresh, error: selErr } = await db.from('entries').select('*').eq('wallet', currentUser.wallet).single();
+      const { data: fresh, error: selErr } = await db.from('signups').select('*').eq('wallet', currentUser.wallet).maybeSingle();
       if (selErr) throw selErr;
       currentUser = fresh;
     } catch(e) {
@@ -901,7 +901,7 @@ async function loadLeaderboard() {
     render(lbData); return;
   }
   try {
-    const { data, error } = await db.from('entries').select('wallet,x_username,points,referrals').order('points',{ascending:false}).limit(100);
+    const { data, error } = await db.from('signups').select('wallet,x_username,points,referrals').order('points',{ascending:false}).limit(100);
     if (error) throw error;
     lbData = data || [];
     render(lbData);
