@@ -826,16 +826,111 @@
   }
 
   /* Mobile */
+  /* ── RESPONSIVE ── */
+
+  /* Small laptop / large tablet (1024px and below) */
+  @media (max-width: 1024px) {
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
+    .proof-grid { grid-template-columns: repeat(2, 1fr); }
+    .collection-grid { grid-template-columns: repeat(2, 1fr); }
+    .collection-info { grid-template-columns: 1fr; gap: 32px; }
+    .coll-stats { grid-template-columns: repeat(4, 1fr); }
+    section { padding: 80px 32px; }
+    #collection { padding: 80px 32px; }
+    #roadmap { padding: 80px 32px; }
+    #faq { padding: 80px 32px; }
+  }
+
+  /* Tablet (768px and below) */
   @media (max-width: 768px) {
-    nav { padding: 0 20px; }
+    nav { padding: 0 16px; }
     .nav-links { display: none; }
+
+    #home { padding: 90px 20px 50px; }
+    .hero-stats { gap: 20px; flex-wrap: wrap; justify-content: center; }
+    .stat-num { font-size: 24px; }
+
     section { padding: 60px 20px; }
+    #collection { padding: 60px 20px; }
+    #roadmap { padding: 60px 20px; }
+    #faq { padding: 60px 20px; }
+
+    .section-title { margin-bottom: 36px; }
+
+    .features-grid { grid-template-columns: 1fr; }
     .proof-grid { grid-template-columns: 1fr; }
     .collection-grid { grid-template-columns: repeat(2, 1fr); }
     .collection-info { grid-template-columns: 1fr; }
-    .hero-stats { gap: 30px; flex-wrap: wrap; }
-    footer { flex-direction: column; gap: 20px; text-align: center; }
+    .coll-stats { grid-template-columns: repeat(2, 1fr); }
+
+    .roadmap-track { padding-left: 28px; }
+    .roadmap-item::before { left: -36px; }
+
+    .proof-section { padding: 60px 20px; }
+    .wl-section { padding: 60px 20px; }
+
+    footer { flex-direction: column; gap: 20px; text-align: center; padding: 32px 20px; }
     .footer-links { flex-wrap: wrap; justify-content: center; }
+  }
+
+  /* Mobile (480px and below) */
+  @media (max-width: 480px) {
+    .nav-logo { font-size: 14px; letter-spacing: 2px; }
+    .nav-cta { display: none; }
+
+    #home { padding: 80px 16px 40px; }
+    .hero-tag { font-size: 10px; letter-spacing: 3px; }
+    .hero-sub { font-size: 12px; letter-spacing: 2px; }
+    .hero-btns { flex-direction: column; align-items: center; }
+    .btn-primary, .btn-outline { width: 100%; max-width: 280px; justify-content: center; }
+    .hero-stats { gap: 16px; }
+    .stat-num { font-size: 20px; }
+    .stat-label { font-size: 9px; }
+    .corner-tl, .corner-br { display: none; }
+
+    section { padding: 50px 16px; }
+    #collection { padding: 50px 16px; }
+    #roadmap { padding: 50px 16px; }
+    #faq { padding: 50px 16px; }
+
+    .section-title { font-size: 28px; margin-bottom: 28px; }
+    .section-label { font-size: 10px; }
+
+    .feature-card { padding: 24px 20px; }
+    .feature-name { font-size: 13px; }
+    .feature-desc { font-size: 14px; }
+
+    .collection-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .nft-rarity { font-size: 9px; padding: 1px 6px; }
+
+    .coll-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .coll-stat-n { font-size: 20px; }
+
+    .roadmap-track { padding-left: 20px; }
+    .roadmap-item { padding: 20px 16px; }
+    .roadmap-item::before { left: -28px; width: 12px; height: 12px; }
+    .roadmap-title { font-size: 16px; }
+
+    .faq-q { font-size: 12px; padding: 16px 16px; }
+    .faq-a { padding: 0 16px 16px; font-size: 14px; }
+
+    .proof-section { padding: 50px 16px; }
+    .wl-section { padding: 50px 16px; }
+    .wl-title { font-size: 26px; }
+    .wl-sub { font-size: 14px; }
+    .wl-section .hero-btns { flex-direction: column; align-items: center; }
+
+    footer { padding: 24px 16px; }
+    .footer-logo { font-size: 14px; }
+    .footer-links { gap: 14px; }
+    .footer-links a { font-size: 11px; }
+    .footer-copy { font-size: 10px; }
+  }
+
+  /* Very small (360px and below) */
+  @media (max-width: 360px) {
+    .collection-grid { grid-template-columns: 1fr; }
+    .hero-stats { flex-direction: column; align-items: center; gap: 14px; }
   }
 </style>
 </head>

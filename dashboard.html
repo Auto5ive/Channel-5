@@ -173,14 +173,77 @@
   .btn-export:hover{background:var(--green);}
 
   /* MOBILE */
-  @media(max-width:900px){
-    .dash-layout{grid-template-columns:1fr;}
-    .sidebar{position:static;height:auto;}
-    .podium{grid-template-columns:1fr;}
-    nav{padding:0 16px;}
-    .main-content{padding:20px 16px;}
-    .sidebar{padding:16px;}
-    .setup-banner{padding:10px 16px;}
+  /* ── RESPONSIVE ── */
+
+  /* Small laptop (1100px and below) */
+  @media (max-width: 1100px) {
+    .dash-layout { grid-template-columns: 300px 1fr; }
+    .sidebar { padding: 24px 20px; }
+    .podium { gap: 8px; }
+    .podium-name { font-size: 11px; }
+    .lb-table th, .lb-table td { padding: 10px 12px; }
+  }
+
+  /* Tablet (900px and below) — stack sidebar above main */
+  @media (max-width: 900px) {
+    .dash-layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; min-height: unset; border-right: none; border-bottom: 1px solid var(--border); padding: 20px 16px; }
+    .podium { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    nav { padding: 0 16px; }
+    .main-content { padding: 20px 16px; }
+    .lb-table { font-size: 13px; }
+  }
+
+  /* Mobile (600px and below) */
+  @media (max-width: 600px) {
+    nav { padding: 0 12px; }
+    .nav-logo { font-size: 15px; letter-spacing: 2px; }
+    .nav-right { gap: 12px; }
+    .nav-status { font-size: 10px; }
+    .nav-back { font-size: 11px; }
+
+    .sidebar { padding: 16px; gap: 16px; }
+    .main-content { padding: 16px; }
+
+    .connect-panel { padding: 16px; }
+    .cyber-input { font-size: 11px; padding: 9px 12px; }
+
+    .podium { grid-template-columns: 1fr; gap: 8px; }
+    .podium-card { padding: 16px 12px; }
+    .podium-crown { font-size: 20px; margin-bottom: 4px; }
+    .podium-pts { font-size: 18px; }
+    .podium-name { font-size: 12px; }
+
+    .lb-header { flex-direction: column; gap: 8px; }
+    .lb-title { font-size: 20px; }
+    .lb-meta { font-size: 10px; }
+
+    /* Simplify table on mobile — hide wallet column */
+    .lb-table th:nth-child(3),
+    .lb-table td:nth-child(3) { display: none; }
+    .lb-table th, .lb-table td { padding: 10px 8px; font-size: 12px; }
+    .td-pts { font-size: 13px; }
+
+    .task-top { padding: 10px; gap: 8px; }
+    .task-text { font-size: 13px; }
+    .task-pts { font-size: 9px; padding: 2px 6px; }
+    .verify-row { padding: 0 10px 10px 36px; }
+    .verify-input { font-size: 10px; }
+    .verify-btn { font-size: 9px; padding: 6px 10px; }
+
+    .profile-name { font-size: 15px; }
+    .pstat-n { font-size: 18px; }
+    .invite-code { font-size: 10px; }
+
+    .tasks-title { font-size: 11px; }
+    .coll-mini-title { font-size: 12px; }
+  }
+
+  /* Very small (400px and below) */
+  @media (max-width: 400px) {
+    .podium { grid-template-columns: 1fr; }
+    .lb-table th:nth-child(5),
+    .lb-table td:nth-child(5) { display: none; }
   }
 
   /* TASK STEPPER */
