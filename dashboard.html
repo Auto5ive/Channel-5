@@ -875,7 +875,7 @@ async function verifyTask(id, pts) {
   const isXPost = /^https?:\/\/(x\.com|twitter\.com)\/[a-zA-Z0-9_]+\/status\/[0-9]+/.test(url);
   if (!isXPost) { toast('Paste a real X post URL — x.com/username/status/...', 'error'); return; }
   const urlLower = url.toLowerCase();
-  if (!urlLower.includes('/' + currentUser.x_username.toLowerCase() + '/')) {
+  if (!urlLower.includes('/' + currentUser.x_username + '/')) {
     toast('That URL does not match your registered X username (@' + currentUser.x_username + ')', 'error');
     return;
   }
@@ -970,6 +970,12 @@ function renderProfile(user) {
   g('screen-profile').classList.add('active');
   updateMyRow();
   updateQuotePreview();
+  // If all non-referral tasks done, go straight to invite page
+  const done = user.tasks_completed || [];
+  const allTasksDone = ['follow','likert','repost','comment'].every(t => done.includes(t));
+  if (allTasksDone) {
+    goToTask(TOTAL_TASKS - 1);
+  }
   refreshRefTask();
 }
 
@@ -1022,7 +1028,7 @@ async function submitCampaignPost() {
   if (!url) { toast('Paste your post URL', 'error'); return; }
   const isXPost = /^https?:\/\/(x\.com|twitter\.com)\/[a-zA-Z0-9_]+\/status\/[0-9]+/.test(url);
   if (!isXPost) { toast('Must be a real X post URL — x.com/username/status/...', 'error'); return; }
-  if (!url.toLowerCase().includes('/' + currentUser.x_username.toLowerCase() + '/')) {
+  if (!url.toLowerCase().includes('/' + currentUser.x_username + '/')) {
     toast('That post URL does not match your X username (@' + currentUser.x_username + ')', 'error'); return;
   }
   const btn = g('postSubmitBtn');
