@@ -182,6 +182,59 @@
     .sidebar{padding:16px;}
     .setup-banner{padding:10px 16px;}
   }
+
+  /* TASK STEPPER */
+  .task-step-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .task-counter{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:3px;color:var(--dim);}
+  .task-dots{display:flex;gap:6px;align-items:center;}
+  .task-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all 0.25s;cursor:pointer;}
+  .task-dot.active{background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+  .task-dot.done-dot{background:var(--green);}
+
+  .task-page{display:none;}
+  .task-page.active{display:block;}
+
+  .tpage-card{background:var(--bg3);border:1px solid var(--border);padding:18px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+  .tpage-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),var(--green));}
+  .tpage-card.done-card{border-color:rgba(0,255,136,0.35);}
+  .tpage-card.done-card::before{background:linear-gradient(90deg,var(--green),var(--green));}
+  .tpage-pts-badge{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan);background:rgba(0,245,255,0.08);border:1px solid var(--border);padding:2px 10px;display:inline-block;letter-spacing:2px;margin-bottom:12px;}
+  .tpage-title{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;}
+  .tpage-desc{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;line-height:1.8;margin-bottom:14px;}
+  .tpage-done-msg{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--green);letter-spacing:2px;display:none;margin-top:8px;}
+  .tpage-card.done-card .tpage-done-msg{display:block;}
+  .tpage-card.done-card .tpage-actions{display:none;}
+
+  .tpage-btn{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--bg);background:var(--cyan);border:none;padding:10px 18px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;display:inline-block;}
+  .tpage-btn:hover{background:var(--green);box-shadow:0 0 14px var(--green);}
+  .tpage-btn-ghost{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--cyan);background:transparent;border:1px solid var(--border);padding:9px 18px;cursor:pointer;text-transform:uppercase;transition:all 0.2s;}
+  .tpage-btn-ghost:hover{border-color:var(--cyan);background:rgba(0,245,255,0.06);}
+  .tpage-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+
+  /* Quote text box */
+  .quote-preview{background:rgba(0,245,255,0.04);border:1px solid var(--border);border-left:3px solid var(--cyan);padding:12px;margin-bottom:12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#fff;line-height:1.8;letter-spacing:0.5px;word-break:break-all;}
+  .quote-preview em{color:var(--cyan);font-style:normal;}
+
+  /* Verify input */
+  .tpage-verify{margin-top:10px;display:flex;gap:6px;}
+  .tpage-verify-input{flex:1;background:rgba(0,245,255,0.04);border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:11px;padding:8px 10px;outline:none;min-width:0;}
+  .tpage-verify-input:focus{border-color:var(--cyan);}
+  .tpage-verify-input::placeholder{color:var(--dim);}
+
+  /* Referral task */
+  .ref-link-box{background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.2);padding:12px;margin-bottom:12px;}
+  .ref-link-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:6px;}
+  .ref-link-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:#fff;word-break:break-all;margin-bottom:8px;}
+  .ref-count-big{font-family:'Orbitron',monospace;font-size:28px;font-weight:900;color:var(--green);text-align:center;margin:10px 0 4px;}
+  .ref-count-label{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:3px;text-transform:uppercase;text-align:center;}
+
+  /* Task nav */
+  .task-nav{display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+  .task-nav-btn{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--dim);background:transparent;border:1px solid var(--border);padding:7px 14px;cursor:pointer;transition:all 0.2s;}
+  .task-nav-btn:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);}
+  .task-nav-btn:disabled{opacity:0.3;cursor:default;}
+
+  .task-summary{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:2px;margin-top:14px;line-height:1.9;border-top:1px solid var(--border);padding-top:12px;}
 </style>
 </head>
 <body>
@@ -277,105 +330,117 @@
       </div>
     </div>
 
-    <!-- TASKS -->
+    <!-- TASKS STEPPER -->
     <div>
       <div class="tasks-title">// Complete Tasks · Earn Points</div>
 
-      <!-- Follow Channel5_0 -->
-      <div class="task-item" id="task-follow">
-        <div class="task-top" onclick="openTask('follow',100)">
-          <div class="task-check" id="chk-follow"></div>
-          <div class="task-text">Follow <a class="task-link" id="link-follow" href="#" target="_blank" onclick="event.stopPropagation()">@Channel5_0</a> on X</div>
-          <div class="task-pts">+100 PTS</div>
-        </div>
-        <div class="verify-row" id="vrow-follow">
-          <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);white-space:nowrap;">Done following?</span>
-          <button class="verify-btn" onclick="doTask('follow',100)">CLAIM</button>
+      <div class="task-step-header">
+        <div class="task-counter">TASK <span id="taskCurrentNum">1</span> / 4</div>
+        <div class="task-dots">
+          <div class="task-dot active" id="dot-0" onclick="goToTask(0)" title="Task 1"></div>
+          <div class="task-dot"        id="dot-1" onclick="goToTask(1)" title="Task 2"></div>
+          <div class="task-dot"        id="dot-2" onclick="goToTask(2)" title="Task 3"></div>
+          <div class="task-dot"        id="dot-3" onclick="goToTask(3)" title="Task 4"></div>
         </div>
       </div>
 
-      <!-- Follow SerReborn -->
-      <div class="task-item" id="task-follow2">
-        <div class="task-top" onclick="openTask('follow2',50)">
-          <div class="task-check" id="chk-follow2"></div>
-          <div class="task-text">Follow <a class="task-link" id="link-follow2" href="#" target="_blank" onclick="event.stopPropagation()">@SerReborn</a> on X</div>
-          <div class="task-pts">+50 PTS</div>
-        </div>
-        <div class="verify-row" id="vrow-follow2">
-          <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);white-space:nowrap;">Done following?</span>
-          <button class="verify-btn" onclick="doTask('follow2',50)">CLAIM</button>
-        </div>
-      </div>
-
-      <!-- Like pinned post -->
-      <div class="task-item" id="task-like">
-        <div class="task-top" onclick="openTask('like',50)">
-          <div class="task-check" id="chk-like"></div>
-          <div class="task-text">Like the <a class="task-link" id="link-like" href="#" target="_blank" onclick="event.stopPropagation()">pinned post</a></div>
-          <div class="task-pts">+50 PTS</div>
-        </div>
-        <div class="verify-row" id="vrow-like">
-          <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);white-space:nowrap;">Done liking?</span>
-          <button class="verify-btn" onclick="doTask('like',50)">CLAIM</button>
+      <!-- ── TASK 1: Follow ─────────────────────────────────── -->
+      <div class="task-page active" id="tpage-0">
+        <div class="tpage-card" id="tcard-follow">
+          <div class="tpage-pts-badge">+100 PTS</div>
+          <div class="tpage-title">Follow @Channel5_0</div>
+          <div class="tpage-desc">
+            Follow the official Channel 5.0 account on X to stay updated on the drop.
+          </div>
+          <div class="tpage-actions">
+            <div class="tpage-btns">
+              <button class="tpage-btn" id="followOpenBtn" onclick="openFollowTask()">FOLLOW ON X →</button>
+            </div>
+            <div id="followClaimRow" style="display:none;">
+              <button class="tpage-btn-ghost" onclick="doTask('follow',100)">✓ DONE — CLAIM 100 PTS</button>
+            </div>
+          </div>
+          <div class="tpage-done-msg">✓ Completed — +100 pts earned</div>
         </div>
       </div>
 
-      <!-- Repost (verify) -->
-      <div class="task-item" id="task-repost">
-        <div class="task-top" onclick="openTask('repost',100)">
-          <div class="task-check" id="chk-repost"></div>
-          <div class="task-text">Repost the <a class="task-link" id="link-repost" href="#" target="_blank" onclick="event.stopPropagation()">pinned post</a></div>
-          <div class="task-pts">+100 PTS</div>
-        </div>
-        <div class="verify-row" id="vrow-repost">
-          <input class="verify-input" id="verify-repost" placeholder="Paste your repost URL...">
-          <button class="verify-btn" onclick="verifyTask('repost',100)">VERIFY</button>
-        </div>
-      </div>
-
-      <!-- Comment & tag -->
-      <div class="task-item" id="task-comment">
-        <div class="task-top" onclick="openTask('comment',150)">
-          <div class="task-check" id="chk-comment"></div>
-          <div class="task-text">Comment &amp; tag 2 friends on <a class="task-link" id="link-comment" href="#" target="_blank" onclick="event.stopPropagation()">pinned post</a></div>
-          <div class="task-pts">+150 PTS</div>
-        </div>
-        <div class="verify-row" id="vrow-comment">
-          <input class="verify-input" id="verify-comment" placeholder="Paste your comment URL...">
-          <button class="verify-btn" onclick="verifyTask('comment',150)">VERIFY</button>
+      <!-- ── TASK 2: Like & Retweet ─────────────────────────── -->
+      <div class="task-page" id="tpage-1">
+        <div class="tpage-card" id="tcard-likert">
+          <div class="tpage-pts-badge">+100 PTS</div>
+          <div class="tpage-title">Like &amp; Retweet</div>
+          <div class="tpage-desc">
+            1. ❤️ Like the pinned post<br>
+            2. 🔁 Retweet it to your followers
+          </div>
+          <div class="tpage-actions">
+            <div class="tpage-btns">
+              <button class="tpage-btn" id="likertOpenBtn" onclick="openLikertTask()">OPEN POST →</button>
+            </div>
+            <div id="likertClaimRow" style="display:none;">
+              <button class="tpage-btn-ghost" onclick="doTask('likert',100)">✓ DONE — CLAIM 100 PTS</button>
+            </div>
+          </div>
+          <div class="tpage-done-msg">✓ Completed — +100 pts earned</div>
         </div>
       </div>
 
-      <!-- Referral (auto) -->
-      <div class="task-item" id="task-invite" style="opacity:0.7;">
-        <div class="task-top" style="cursor:default;pointer-events:none;">
-          <div class="task-check" id="chk-invite"></div>
-          <div class="task-text">Each friend uses your invite link</div>
-          <div class="task-pts">+200 PTS</div>
+      <!-- ── TASK 3: Quote Tweet ───────────────────────────── -->
+      <div class="task-page" id="tpage-2">
+        <div class="tpage-card" id="tcard-quote">
+          <div class="tpage-pts-badge">+150 PTS</div>
+          <div class="tpage-title">Quote the Tweet</div>
+          <div class="tpage-desc">
+            Click below — X opens with our post ready to quote. Your referral link is pre-filled in the text.
+          </div>
+          <div class="tpage-actions">
+            <div class="quote-preview" id="quotePrev">
+              Just entered the campaign for <em>@Channel5_0</em> — GTD WL · 555 supply · FREE MINT · coming to ETHEREUM 🔥<br>
+              JOIN with my referral link: <em id="quoteRefLink">sign up first to get your link ↑</em>
+            </div>
+            <div class="tpage-btns">
+              <button class="tpage-btn" onclick="openQuoteTask()">QUOTE TWEET ON X →</button>
+            </div>
+            <div class="tpage-verify">
+              <input class="tpage-verify-input" id="verify-quote" placeholder="Paste your quote tweet URL...">
+              <button class="verify-btn" onclick="verifyTask('quote',150)">VERIFY</button>
+            </div>
+          </div>
+          <div class="tpage-done-msg">✓ Completed — +150 pts earned</div>
         </div>
+      </div>
+
+      <!-- ── TASK 4: Referral ──────────────────────────────── -->
+      <div class="task-page" id="tpage-3">
+        <div class="tpage-card" id="tcard-invite">
+          <div class="tpage-pts-badge">+200 PTS / REFERRAL</div>
+          <div class="tpage-title">Refer Friends</div>
+          <div class="tpage-desc">
+            Share your personal link. Every friend who joins = +200 pts for you. No limit.
+          </div>
+          <div class="ref-link-box" id="refLinkBox" style="display:none;">
+            <div class="ref-link-label">Your Invite Link</div>
+            <div class="ref-link-val" id="refLinkVal">—</div>
+            <button class="tpage-btn-ghost" style="font-size:10px;padding:6px 14px;" onclick="copyInviteTask()">COPY LINK</button>
+          </div>
+          <div id="refNoLink" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;">
+            Sign up above to get your personal invite link.
+          </div>
+          <div class="ref-count-big" id="refCountBig">0</div>
+          <div class="ref-count-label">referrals so far</div>
+        </div>
+      </div>
+
+      <!-- Task nav -->
+      <div class="task-nav">
+        <button class="task-nav-btn" id="taskPrevBtn" onclick="taskNav(-1)" disabled>← PREV</button>
+        <button class="task-nav-btn" id="taskNextBtn" onclick="taskNav(1)">NEXT →</button>
       </div>
 
       <div class="task-summary">
         SIGN-UP BONUS: <span style="color:var(--cyan);">+50 PTS</span><br>
-        TOTAL: <span style="color:var(--cyan);">850+ PTS</span><br>
-        REFERRAL BONUS: <span style="color:var(--green);">200 PTS / INVITE</span>
-      </div>
-    </div>
-
-    <!-- CAMPAIGN POST TASK -->
-    <div style="background:var(--bg3);border:1px solid var(--border);padding:20px;flex-shrink:0;">
-      <div class="tasks-title">// Community Post · Up to +200 PTS</div>
-      <p style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);letter-spacing:1px;line-height:1.8;margin-bottom:14px;">
-        Make a post about Channel 5.0 on X. We review it manually and award points based on quality and reach.
-      </p>
-      <div id="post-submitted-msg" style="display:none;background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.2);padding:12px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--green);letter-spacing:1px;line-height:1.7;"></div>
-      <div id="post-form">
-        <div class="input-group" style="margin-bottom:10px;">
-          <label class="input-label">Your Post URL</label>
-          <input class="cyber-input" id="campaignPostUrl" type="text" placeholder="https://x.com/you/status/...">
-          <div class="input-hint">Must be your own post. Include Channel5_0 in it.</div>
-        </div>
-        <button class="btn-connect" onclick="submitCampaignPost()" id="postSubmitBtn">SUBMIT FOR REVIEW →</button>
+        TASKS TOTAL: <span style="color:var(--cyan);">+350 PTS</span><br>
+        REFERRAL BONUS: <span style="color:var(--green);">+200 PTS / INVITE</span>
       </div>
     </div>
 
@@ -503,12 +568,15 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // ── STEP 2: Your Twitter/X links (fill in when ready) ──────────────
 const LINKS = {
-  follow  : 'https://x.com/Channel5_0',    // ← update when live
-  follow2 : 'https://x.com/SerReborn',      // ← update when live
-  like    : '#',                             // ← paste pinned post URL
-  repost  : '#',                             // ← paste pinned post URL
-  comment : '#',                             // ← paste pinned post URL
+  follow  : 'https://x.com/Channel5_0',         // ← Channel 5.0 X account
+  likert  : '#',                                  // ← paste your pinned post URL here
+  quote   : '#',                                  // ← paste your pinned post URL here (same post)
 };
+
+// ── QUOTE TWEET TEXT — auto-filled with user's referral link ──────
+// Clicking "Quote Tweet" opens X with this pre-filled + the post queued to quote.
+// The {REF} placeholder is replaced at runtime with the user's invite URL.
+const QUOTE_TWEET_TEXT = "Just entered the campaign for @Channel5_0 — GTD WL · 555 supply · FREE MINT · coming to ETHEREUM 🔥\nJOIN with my referral link: {REF}";
 
 // ── STEP 3: Admin password ─────────────────────────────────────────
 // Access: yourdomain.com/dashboard.html?admin=YOUR_PASSWORD
@@ -664,14 +732,107 @@ async function connectWallet() {
   btn.textContent = 'Join Campaign →'; btn.disabled = false;
 }
 
+// ── TASK STEPPER ─────────────────────────────────────────────────────
+let currentTask = 0;
+const TOTAL_TASKS = 4;
+
+function taskNav(dir) {
+  goToTask(currentTask + dir);
+}
+
+function goToTask(idx) {
+  if (idx < 0 || idx >= TOTAL_TASKS) return;
+  document.getElementById('tpage-' + currentTask).classList.remove('active');
+  currentTask = idx;
+  document.getElementById('tpage-' + currentTask).classList.add('active');
+  document.getElementById('taskCurrentNum').textContent = currentTask + 1;
+  document.getElementById('taskPrevBtn').disabled = currentTask === 0;
+  document.getElementById('taskNextBtn').disabled = currentTask === TOTAL_TASKS - 1;
+  // Update dots
+  for (let i = 0; i < TOTAL_TASKS; i++) {
+    const d = document.getElementById('dot-' + i);
+    d.classList.remove('active');
+  }
+  document.getElementById('dot-' + currentTask).classList.add('active');
+  // Update referral task live
+  if (currentTask === 3) refreshRefTask();
+}
+
+function refreshRefTask() {
+  const box   = document.getElementById('refLinkBox');
+  const noLnk = document.getElementById('refNoLink');
+  const cnt   = document.getElementById('refCountBig');
+  if (currentUser) {
+    const base = window.location.origin + window.location.pathname;
+    const url  = base + '?ref=' + currentUser.referral_code;
+    document.getElementById('refLinkVal').textContent = url;
+    box.style.display   = 'block';
+    noLnk.style.display = 'none';
+    cnt.textContent     = currentUser.referrals || 0;
+  } else {
+    box.style.display   = 'none';
+    noLnk.style.display = 'block';
+    cnt.textContent     = '0';
+  }
+}
+
+function openFollowTask() {
+  if (!currentUser) { toast('Sign up first to earn points!', 'error'); return; }
+  if (LINKS.follow && LINKS.follow !== '#') window.open(LINKS.follow, '_blank');
+  document.getElementById('followClaimRow').style.display = 'block';
+  document.getElementById('followOpenBtn').style.display  = 'none';
+}
+
+function openLikertTask() {
+  if (!currentUser) { toast('Sign up first to earn points!', 'error'); return; }
+  const url = LINKS.likert;
+  if (url && url !== '#') window.open(url, '_blank');
+  document.getElementById('likertClaimRow').style.display = 'block';
+  document.getElementById('likertOpenBtn').style.display  = 'none';
+}
+
+function openQuoteTask() {
+  if (!currentUser) { toast('Sign up first to get your referral link!', 'error'); return; }
+  const base    = window.location.origin + window.location.pathname;
+  const refUrl  = base + '?ref=' + currentUser.referral_code;
+  const text    = QUOTE_TWEET_TEXT.replace('{REF}', refUrl);
+  const postUrl = LINKS.quote && LINKS.quote !== '#' ? LINKS.quote : '';
+  // Build X intent URL: opens compose with the post queued to quote + pre-filled text
+  let xUrl = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
+  if (postUrl) xUrl += '&url=' + encodeURIComponent(postUrl);
+  window.open(xUrl, '_blank');
+}
+
+function updateQuotePreview() {
+  const el = document.getElementById('quoteRefLink');
+  if (!el) return;
+  if (currentUser) {
+    const base = window.location.origin + window.location.pathname;
+    el.textContent = base + '?ref=' + currentUser.referral_code;
+  } else {
+    el.textContent = 'sign up first to get your link ↑';
+  }
+}
+
+function copyInviteTask() {
+  const val = document.getElementById('refLinkVal').textContent;
+  navigator.clipboard.writeText(val).then(() => toast('Invite link copied! 🔗', 'success'))
+    .catch(() => prompt('Copy your link:', val));
+}
+
+// ── mark dots as done ────────────────────────────────────────────────
+const TASK_DOT_MAP = { follow: 0, likert: 1, quote: 2 };
+function markDoneDot(id) {
+  const idx = TASK_DOT_MAP[id];
+  if (idx !== undefined) {
+    const d = document.getElementById('dot-' + idx);
+    if (d) { d.classList.add('done-dot'); d.classList.remove('active'); }
+  }
+}
+
 // ── TASKS ────────────────────────────────────────────────────────────
 function openTask(id, pts) {
-  if (!currentUser) { toast('Sign up first to earn points!', 'error'); return; }
-  if ((currentUser.tasks_completed||[]).includes(id)) return;
-  const url = LINKS[id];
-  if (url && url !== '#') window.open(url, '_blank');
-  const vr = document.getElementById('vrow-' + id);
-  if (vr) vr.classList.add('open');
+  // Legacy compat — not used in stepper but kept for safety
 }
 
 async function doTask(id, pts) {
@@ -714,10 +875,15 @@ async function verifyTask(id, pts) {
 }
 
 function markDone(id) {
+  // Legacy class-based (unused in stepper but kept for compat)
   const item = document.getElementById('task-' + id);
   const chk  = document.getElementById('chk-' + id);
   if (item) item.classList.add('done');
   if (chk)  chk.textContent = '✓';
+  // Stepper card done state
+  const card = document.getElementById('tcard-' + id);
+  if (card) card.classList.add('done-card');
+  markDoneDot(id);
 }
 
 // ── LEADERBOARD ──────────────────────────────────────────────────────
@@ -795,6 +961,8 @@ function renderProfile(user) {
   g('screen-connect').classList.remove('active');
   g('screen-profile').classList.add('active');
   updateMyRow();
+  updateQuotePreview();
+  refreshRefTask();
 }
 
 function updateMyRow() {
@@ -820,6 +988,12 @@ function disconnect() {
   g('screen-profile').classList.remove('active');
   g('screen-connect').classList.add('active');
   g('userRow').style.display = 'none';
+  document.querySelectorAll('.tpage-card').forEach(c=>c.classList.remove('done-card'));
+  document.querySelectorAll('.task-dot').forEach(d=>d.classList.remove('done-dot'));
+  if(g('followClaimRow')){g('followClaimRow').style.display='none';g('followOpenBtn').style.display='';}
+  if(g('likertClaimRow')){g('likertClaimRow').style.display='none';g('likertOpenBtn').style.display='';}
+  updateQuotePreview();
+  refreshRefTask();
 }
 
 function copyInvite() {
