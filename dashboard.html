@@ -25,6 +25,22 @@
   .nav-status::before{content:'●';animation:blink 1s infinite;}
   @keyframes blink{50%{opacity:0;}}
 
+  /* DROPDOWN MENU */
+  .nav-menu-btn{background:none;border:1px solid var(--border);cursor:pointer;padding:8px 10px;display:flex;flex-direction:column;gap:5px;transition:border-color 0.2s;flex-shrink:0;margin-left:8px;}
+  .nav-menu-btn:hover{border-color:var(--cyan);}
+  .nav-menu-btn span{display:block;width:20px;height:2px;background:var(--cyan);transition:all 0.3s;}
+  .nav-menu-btn.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .nav-menu-btn.open span:nth-child(2){opacity:0;}
+  .nav-menu-btn.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+  .nav-dropdown{position:fixed;top:64px;right:0;width:260px;background:rgba(5,12,18,0.98);border-left:1px solid var(--border);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);z-index:999;transform:translateX(100%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);padding:12px 0;}
+  .nav-dropdown.open{transform:translateX(0);}
+  .nav-dropdown a,.nav-dropdown button.dd-link{display:flex;align-items:center;gap:14px;padding:13px 24px;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;color:var(--dim);text-decoration:none;text-transform:uppercase;transition:all 0.2s;border-left:2px solid transparent;width:100%;background:none;border-top:none;border-right:none;border-bottom:none;cursor:pointer;}
+  .nav-dropdown a:hover,.nav-dropdown button.dd-link:hover{color:var(--cyan);background:rgba(0,245,255,0.04);border-left-color:var(--cyan);}
+  .nav-dropdown a .dd-icon,.nav-dropdown button.dd-link .dd-icon{font-size:14px;width:20px;text-align:center;}
+  .nav-dropdown .dd-divider{height:1px;background:var(--border);margin:8px 24px;}
+  .nav-dropdown .dd-highlight{color:var(--cyan) !important;}
+  .nav-dropdown .dd-green{color:var(--green) !important;}
+
   /* SETUP BANNER */
   .setup-banner{display:none;position:fixed;top:64px;left:0;right:0;z-index:998;background:rgba(255,215,0,0.08);border-bottom:2px solid var(--gold);padding:10px 40px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--gold);align-items:center;justify-content:space-between;gap:12px;}
   .setup-banner a{color:var(--cyan);cursor:pointer;text-decoration:none;}
@@ -314,8 +330,25 @@
   <div class="nav-right">
     <span class="nav-status">Leaderboard Live</span>
     <a href="index.html" class="nav-back">← Back</a>
+    <button class="nav-menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- DROPDOWN -->
+<div class="nav-dropdown" id="navDropdown">
+  <a href="index.html"   onclick="closeMenu()"><span class="dd-icon">🏠</span>Home</a>
+  <a href="index.html#collection" onclick="closeMenu()"><span class="dd-icon">🖼</span>Collection</a>
+  <a href="index.html#roadmap"    onclick="closeMenu()"><span class="dd-icon">🗺</span>Roadmap</a>
+  <a href="index.html#faq"        onclick="closeMenu()"><span class="dd-icon">❓</span>FAQ</a>
+  <div class="dd-divider"></div>
+  <button class="dd-link dd-highlight" onclick="scrollTo('lbTable');closeMenu()"><span class="dd-icon">📊</span>Leaderboard</button>
+  <button class="dd-link" onclick="scrollTo('tasks-stepper');closeMenu()"><span class="dd-icon">🎯</span>Tasks</button>
+  <button class="dd-link" onclick="scrollTo('screen-profile');closeMenu()"><span class="dd-icon">👤</span>Profile</button>
+  <button class="dd-link dd-green" onclick="scrollTo('refer-friends-panel');closeMenu()"><span class="dd-icon">🔗</span>Refer Friends</button>
+  <button class="dd-link" onclick="scrollTo('post-form');closeMenu()"><span class="dd-icon">✍️</span>Community Post</button>
+</div>
 
 <!-- ADMIN PANEL -->
 <div class="admin-panel" id="adminPanel">
@@ -1367,6 +1400,24 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 function genCode(){ const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s='CH5-'; for(let i=0;i<6;i++) s+=c[Math.floor(Math.random()*c.length)]; return s; }
 
 let _tt=null;
+function toggleMenu() {
+  const btn = document.getElementById('menuBtn');
+  const dd  = document.getElementById('navDropdown');
+  btn.classList.toggle('open');
+  dd.classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('menuBtn').classList.remove('open');
+  document.getElementById('navDropdown').classList.remove('open');
+}
+function scrollTo(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#menuBtn') && !e.target.closest('#navDropdown')) closeMenu();
+});
+
 function toast(msg, type='info'){
   const t=g('toast'); t.textContent=msg; t.className='toast show '+type;
   clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),3500);
