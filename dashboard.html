@@ -695,8 +695,8 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // ── STEP 2: Your Twitter/X links (fill in when ready) ──────────────
 const LINKS = {
   follow  : 'https://x.com/Channel5_0',         // ← Channel 5.0 X account
-  likert  : 'https://x.com/Channel5_0/status/2046958927091470539?s=20',
-  quote   : 'https://x.com/Channel5_0/status/2046958927091470539?s=20',
+  likert  : '#',                                  // ← paste your pinned post URL here
+  quote   : '#',                                  // ← paste your pinned post URL here (same post)
 };
 
 // ── QUOTE TWEET TEXT — auto-filled with user's referral link ──────
@@ -735,6 +735,7 @@ const db = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_
 let currentUser = null;
 let lbData      = [];
 let adminData   = [];
+const openedTasks = new Set(); // tracks links actually opened this session
 
 // ── BOOT ────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -786,7 +787,7 @@ function loadSession() {
 // ── SIGNUP ──────────────────────────────────────────────────────────
 async function connectWallet() {
   const wallet  = (document.getElementById('walletInput').value || '').trim();
-  const xUser   = (document.getElementById('usernameInput').value || '').trim().replace(/^@/, '');
+  const xUser   = (document.getElementById('usernameInput').value || '').trim().replace(/^@/, '').toLowerCase();
   const invCode = (document.getElementById('inviteCodeInput').value || '').trim().toUpperCase();
 
   if (!wallet) { toast('Enter your wallet address', 'error'); return; }
@@ -802,17 +803,25 @@ async function connectWallet() {
 
   if (!db) {
     // ── Local-only mode ──────────────────────────────────────────
-    const existing = getLocalLB().find(e => e.wallet === wl);
+    const lb0 = getLocalLB();
+    const existing = lb0.find(e => e.wallet === wl);
     if (existing) {
       saveSession(existing);
       currentUser = existing;
       renderProfile(existing);
       toast('Welcome back, @' + existing.x_username + '!', 'success');
     } else {
+      const takenByOther = lb0.find(e => e.x_username === xUser && e.wallet !== wl);
+      if (takenByOther) { toast('That X username is already registered with a different wallet', 'error'); btn.textContent = 'Join Campaign →'; btn.disabled = false; return; }
       const code = genCode();
       const user = { wallet: wl, x_username: xUser, referral_code: code, referred_by: invCode||null, points: 50, referrals: 0, tasks_completed: [], created_at: new Date().toISOString() };
-      let lb = getLocalLB();
-      if (invCode) lb = lb.map(e => e.referral_code === invCode ? { ...e, points: e.points + 200, referrals: e.referrals + 1 } : e);
+      let lb = lb0;
+      if (invCode) {
+        const refOwner = lb.find(e => e.referral_code === invCode);
+        if (!refOwner) { toast('Invite code not found', 'error'); btn.textContent = 'Join Campaign →'; btn.disabled = false; return; }
+        if (refOwner.wallet === wl) { toast('You cannot use your own invite code', 'error'); btn.textContent = 'Join Campaign →'; btn.disabled = false; return; }
+        lb = lb.map(e => e.referral_code === invCode ? { ...e, points: e.points + 200, referrals: e.referrals + 1 } : e);
+      }
       lb.push(user);
       saveLocalLB(lb);
       saveSession(user);
@@ -837,6 +846,13 @@ async function connectWallet() {
       btn.textContent = 'Join Campaign →'; btn.disabled = false;
       return;
     }
+    // Check username not already taken by a different wallet
+    const { data: byUsername } = await db.from('signups').select('wallet').eq('x_username', xUser).maybeSingle();
+    if (byUsername) {
+      toast('That X username is already registered with a different wallet', 'error');
+      btn.textContent = 'Join Campaign →'; btn.disabled = false; return;
+    }
+
     // Validate invite code before inserting
     let refEntry = null;
     if (invCode) {
@@ -934,6 +950,7 @@ function copyReferPanelLink() {
 function openFollowTask() {
   if (!currentUser) { toast('Sign up first to earn points!', 'error'); return; }
   if (LINKS.follow && LINKS.follow !== '#') window.open(LINKS.follow, '_blank');
+  openedTasks.add('follow');
   document.getElementById('followClaimRow').style.display = 'block';
   document.getElementById('followOpenBtn').style.display  = 'none';
 }
@@ -942,6 +959,7 @@ function openLikertTask() {
   if (!currentUser) { toast('Sign up first to earn points!', 'error'); return; }
   const url = LINKS.likert;
   if (url && url !== '#') window.open(url, '_blank');
+  openedTasks.add('likert');
   document.getElementById('likertClaimRow').style.display = 'block';
   document.getElementById('likertOpenBtn').style.display  = 'none';
 }
@@ -993,6 +1011,10 @@ function openTask(id, pts) {
 async function doTask(id, pts) {
   if (!currentUser) { toast('Sign up first!', 'error'); return; }
   if ((currentUser.tasks_completed||[]).includes(id)) return;
+  // Require the link was actually opened this session before claiming
+  if ((id === 'follow' || id === 'likert') && !openedTasks.has(id)) {
+    toast('Open the link first, then claim', 'error'); return;
+  }
   const newPts   = (currentUser.points||0) + pts;
   const newTasks = [...(currentUser.tasks_completed||[]), id];
   if (db) {
